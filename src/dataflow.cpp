@@ -60,7 +60,7 @@ NodeData::NodeData()
 }
 NodeData::NodeData(void *d, DATA_TYPE t)
 {
-
+    // std::cout <<"setdatatype: "<< dataTypeToString(t)<<std::endl;
     this->data = d;
     this->data_type = t;
 }
@@ -88,16 +88,16 @@ Port::Port()
     port_id = genId();
     edge_id = 0;
     remote_port = nullptr;
-    node_data = nullptr;
+    //  node_data = nullptr;
     port_type = PORT_TYPE::UNSET;
     data_type = DATA_TYPE::UNSET;
 }
 
-Port::Port(PORT_TYPE port_type, NodeData *d) : Port(port_type)
-{
-    node_data = d;
-    data_type = d->data_type;
-}
+// Port::Port(PORT_TYPE port_type, NodeData *d) : Port(port_type)
+// {
+//     node_data = d;
+//     data_type = d->data_type;
+// }
 Port::Port(PORT_TYPE port_type) : Port()
 {
     port_type = port_type;
@@ -106,14 +106,31 @@ Port::Port(PORT_TYPE port_type, DATA_TYPE t) : Port(port_type)
 {
     data_type = t;
 }
-void Port::setPortNodeData(NodeData *d)
+// void Port::setPortNodeData(NodeData *d)
+// {
+//     node_data = d;
+//     data_type = d->data_type;
+// }
+// NodeData *Port::getPortNodeData()
+// {
+//     return node_data;
+// }
+
+Port *Port::setPortProperty(Property *p)
 {
-    node_data = d;
-    data_type = d->data_type;
+    this->prop = p;
+
+    return this;
 }
-NodeData *Port::getPortNodeData()
+//------------PROPERTY-------
+Property::Property(const std::string &n, NodeData *own)
 {
-    return node_data;
+    this->name = n;
+    this->own_data = own;
+    this->remote_data = nullptr;
+}
+Property::~Property()
+{
 }
 void Port::print()
 {
@@ -134,25 +151,26 @@ Node::Node()
 }
 NodeData *Node::addNodeData(void *d, DATA_TYPE t)
 {
-    NodeData nd(d, t);
+    std::unique_ptr<NodeData> ptr(new NodeData(d, t));
 
-    this->node_data.push_back(nd);
+    this->node_data.push_back(std::move(ptr));
 
-    return &this->node_data.back();
+    return this->node_data.back().get();
 }
-Port *Node::addOutputPort()
-{
 
-    Port new_port(PORT_TYPE::OUTPUT); // = new Port;
-    this->ports_out.push_back(new_port);
-    return &this->ports_out.back();
+Property *Node::addProperty(const std::string &name, NodeData *own)
+{
+    //  Property prop(name, own);
+    std::unique_ptr<Property> ptr(new Property(name, own));
+    this->props.push_back(std::move(ptr));
+    return this->props.back().get();
 }
 
 Port *Node::getPortOutByPos(int pos)
 {
     if (pos < this->ports_out.size())
     {
-        return &this->ports_out[pos];
+        return this->ports_out[pos].get();
     }
     else
     {
@@ -167,7 +185,7 @@ Port *Node::getInputPortByPos(int pos)
 {
     if (pos < this->ports_in.size())
     {
-        return &this->ports_in[pos];
+        return this->ports_in[pos].get();
     }
     else
     {
@@ -176,25 +194,64 @@ Port *Node::getInputPortByPos(int pos)
         throw std::runtime_error(str);
     }
 }
+
+Port *Node::addOutputPort()
+{
+
+    // Port new_port(PORT_TYPE::OUTPUT); // = new Port;
+    std::unique_ptr<Port> ptr(new Port(PORT_TYPE::OUTPUT));
+    this->ports_out.push_back(std::move(ptr));
+    return this->ports_out.back().get();
+}
+
 Port *Node::addInputPort()
 {
-    Port new_port(PORT_TYPE::INPUT); // = new Port;
-    this->ports_in.push_back(new_port);
+    // Port new_port(PORT_TYPE::INPUT); // = new Port;
+    // this->ports_in.push_back(new_port);
 
-    return &this->ports_in.back();
+    // return &this->ports_in.back();
+
+    std::unique_ptr<Port> ptr(new Port(PORT_TYPE::INPUT));
+    this->ports_in.push_back(std::move(ptr));
+    return this->ports_in.back().get();
+}
+Port *Node::addOutputPort(DATA_TYPE type)
+{
+    // Port new_port(PORT_TYPE::OUTPUT, type); // = new Port;
+    // this->ports_out.push_back(new_port);
+    // return &this->ports_out.back();
+
+    std::unique_ptr<Port> ptr(new Port(PORT_TYPE::OUTPUT, type));
+    this->ports_out.push_back(std::move(ptr));
+    return this->ports_out.back().get();
 }
 Port *Node::addInputPort(DATA_TYPE t)
 {
-    Port new_port(PORT_TYPE::INPUT, t); // = new Port;
-    this->ports_in.push_back(new_port);
+    // Port new_port(PORT_TYPE::INPUT, t); // = new Port;
+    // this->ports_in.push_back(new_port);
 
-    return &this->ports_in.back();
+    // return &this->ports_in.back();
+
+    std::unique_ptr<Port> ptr(new Port(PORT_TYPE::INPUT, t));
+    this->ports_in.push_back(std::move(ptr));
+    return this->ports_in.back().get();
+}
+Port *Node::addModInputPort(DATA_TYPE type)
+{
+    // Port new_port(PORT_TYPE::INPUT_OPT, type); // = new Port;
+    // this->ports_in.push_back(new_port);
+
+    // return &this->ports_in.back();
+
+    std::unique_ptr<Port> ptr(new Port(PORT_TYPE::INPUT_OPT, type));
+    this->ports_in.push_back(std::move(ptr));
+    return this->ports_in.back().get();
 }
 
 void Node::print()
 {
     std::cout << "NodeId: " << node_id << std::endl;
-    std::cout << " NodeType: " << nodeTypeToString(node_type) << std::endl;
+    std::cout << "NodeType: " << nodeTypeToString(node_type) << std::endl;
 }
 Node::~Node()
 {
@@ -231,22 +288,28 @@ NodeOfSum::NodeOfSum()
     this->node_type = NODE_TYPE::NODE_OF_SUM;
     this->node_id = genId();
 }
+
 NodeOfSum::~NodeOfSum() {}
 
 void NodeOfSum::evaluate()
 {
 
-    if (this->ports_in[0].remote_port != nullptr && this->ports_in[1].remote_port != nullptr)
+    if (this->ports_in[0].get()->remote_port != nullptr && this->ports_in[1].get()->remote_port != nullptr)
     {
 
-        double *d = static_cast<double *>(this->node_data[0].data);
+        std::cout << "received:" << std::endl;
+        std::cout << this->props[0].get()->own_data << std::endl;
+        std::cout << this->props[0].get()->own_data->data << std::endl;
 
-        double *op1 = static_cast<double *>(this->ports_in[0].remote_port->node_data->data);
+        std::cout << dataTypeToString(this->props[0].get()->own_data->data_type) << std::endl;
 
-        double *op2 = static_cast<double *>(this->ports_in[1].remote_port->node_data->data);
+        double *d = static_cast<double *>(this->props[0].get()->own_data->data);
+
+        double *op1 = static_cast<double *>(this->ports_in[0].get()->remote_port->prop->own_data->data);
+
+        double *op2 = static_cast<double *>(this->ports_in[1].get()->remote_port->prop->own_data->data);
 
         *d = *op1 + *op2;
-
     }
     else
     {
@@ -264,12 +327,12 @@ NodeOfStringConcat::~NodeOfStringConcat() {}
 void NodeOfStringConcat::evaluate()
 {
 
-    if (this->ports_in[0].remote_port != nullptr && this->ports_in[1].remote_port != nullptr)
+    if (this->ports_in[0].get()->remote_port != nullptr && this->ports_in[1].get()->remote_port != nullptr)
     {
 
-        std::string *d = static_cast<std::string *>(this->node_data[0].data);
-        std::string *op1 = static_cast<std::string *>(this->ports_in[0].remote_port->node_data->data);
-        std::string *op2 = static_cast<std::string *>(this->ports_in[1].remote_port->node_data->data);
+        std::string *d = static_cast<std::string *>(this->props[0].get()->own_data->data);
+        std::string *op1 = static_cast<std::string *>(this->ports_in[0].get()->remote_port->prop->own_data->data);
+        std::string *op2 = static_cast<std::string *>(this->ports_in[1].get()->remote_port->prop->own_data->data);
 
         *d = *op1 + *op2;
 
@@ -296,13 +359,13 @@ GraphManager::~GraphManager()
     for (auto it = nodes.begin(); it != nodes.end(); ++it)
     {
 
-        for (Port &p : it->second->ports_in)
+        for (auto &p : it->second->ports_in)
         {
-            disconnectPorts(getEdgeOrNull(p.edge_id));
+            disconnectPorts(getEdgeOrNull(p.get()->edge_id));
         }
-        for (Port &p : it->second->ports_out)
+        for (auto &p : it->second->ports_out)
         {
-            disconnectPorts(getEdgeOrNull(p.edge_id));
+            disconnectPorts(getEdgeOrNull(p.get()->edge_id));
         }
     }
 
@@ -322,6 +385,12 @@ GraphManager::~GraphManager()
         case DATA_TYPE::DOUBLE:
         {
             double *d = static_cast<double *>(nd->data);
+            delete d;
+        }
+        break;
+        case DATA_TYPE::INT:
+        {
+            int *d = static_cast<int *>(nd->data);
             delete d;
         }
         break;
@@ -351,8 +420,11 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     {
         NodeOfStringOut *n = new NodeOfStringOut();
 
-        portAdd(n->addOutputPort());
-        n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new std::string("Hello"), DATA_TYPE::STRING));
+        // portAdd(n->addOutputPort());
+        // n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new std::string("Hello"), DATA_TYPE::STRING));
+
+        portAdd(n->addOutputPort()->setPortProperty(n->addProperty("output", n->addNodeData(new std::string("Hello"), DATA_TYPE::STRING))));
+
         nodeAdd(n);
 
         ret = n;
@@ -363,8 +435,10 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     {
         NodeOfDoubleOut *n = new NodeOfDoubleOut();
 
-        portAdd(n->addOutputPort());
-        n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new double(10), DATA_TYPE::DOUBLE));
+        // portAdd(n->addOutputPort());
+        // n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new double(10), DATA_TYPE::DOUBLE));
+
+        portAdd(n->addOutputPort()->setPortProperty(n->addProperty("output", n->addNodeData(new double(10), DATA_TYPE::DOUBLE))));
 
         nodeAdd(n);
         ret = n;
@@ -374,11 +448,15 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     {
         NodeOfStringConcat *n = new NodeOfStringConcat();
 
-        portAdd(n->addOutputPort());
-        portAdd(n->addInputPort(DATA_TYPE::STRING));
-        portAdd(n->addInputPort(DATA_TYPE::STRING));
+        // portAdd(n->addOutputPort());
+        // portAdd(n->addInputPort(DATA_TYPE::STRING));
+        // portAdd(n->addInputPort(DATA_TYPE::STRING));
 
-        n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new std::string(""), DATA_TYPE::STRING));
+        // n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new std::string(""), DATA_TYPE::STRING));
+
+        portAdd(n->addOutputPort(DATA_TYPE::STRING)->setPortProperty(n->addProperty("output", n->addNodeData(new std::string(""), DATA_TYPE::STRING))));
+        portAdd(n->addInputPort(DATA_TYPE::STRING)->setPortProperty(n->addProperty("input_a", nullptr)));
+        portAdd(n->addInputPort(DATA_TYPE::STRING)->setPortProperty(n->addProperty("input_b", nullptr)));
 
         nodeAdd(n);
 
@@ -389,16 +467,88 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     case NODE_TYPE::NODE_OF_SUM:
     {
         NodeOfSum *n = new NodeOfSum();
+        Property *pp = nullptr;
+        NodeData *ndd = nullptr;
 
-        portAdd(n->addOutputPort());
-        portAdd(n->addInputPort(DATA_TYPE::DOUBLE));
-        portAdd(n->addInputPort(DATA_TYPE::DOUBLE));
+        // portAdd(n->addOutputPort());
+        // portAdd(n->addInputPort(DATA_TYPE::DOUBLE));
+        // portAdd(n->addInputPort(DATA_TYPE::DOUBLE));
 
-        n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new double(5.0), DATA_TYPE::DOUBLE));
+        // n->getPortOutByPos(0)->setPortNodeData(n->addNodeData(new double(0.0), DATA_TYPE::DOUBLE));
 
+        // portAdd(n->addInputPort(DATA_TYPE::INT)->setPortProperty(n->addProperty("factor", n->addNodeData(new int(128), DATA_TYPE::INT))));
+        {
+
+            // NodeData *nd = n->addNodeData(new double(0.0), DATA_TYPE::DOUBLE);
+            // ndd = nd;
+            // std::cout << "created data:" << std::endl;
+            // std::cout << nd << std::endl;
+            // std::cout << nd->data << std::endl;
+            // std::cout << dataTypeToString(nd->data_type) << std::endl;
+
+            // Property *p = n->addProperty("output", nd);
+            // pp = p;
+            // std::cout << "created prop:" << std::endl;
+            // std::cout << p->own_data << std::endl;
+            // std::cout << p->own_data->data << std::endl;
+            // std::cout << dataTypeToString(p->own_data->data_type) << std::endl;
+
+            // Port *pr = n->addOutputPort(DATA_TYPE::DOUBLE);
+            // pr->setPortProperty(p);
+
+            portAdd(n->addOutputPort(DATA_TYPE::DOUBLE)->setPortProperty(n->addProperty("output", n->addNodeData(new double(0.0), DATA_TYPE::DOUBLE))));
+            portAdd(n->addInputPort(DATA_TYPE::DOUBLE)->setPortProperty(n->addProperty("input_a", nullptr)));
+            portAdd(n->addInputPort(DATA_TYPE::DOUBLE)->setPortProperty(n->addProperty("input_b", nullptr)));
+
+            // NodeData *nd2 = n->addNodeData(new double(2.0), DATA_TYPE::DOUBLE);
+            n->addProperty("factor", n->addNodeData(new double(2.0), DATA_TYPE::DOUBLE));
+
+            // std::cout << "+++after more created data:" << std::endl;
+            // std::cout << nd << std::endl;
+            // std::cout << nd->data << std::endl;
+            // std::cout << dataTypeToString(nd->data_type) << std::endl;
+
+            // std::cout << "+++ more created data:" << std::endl;
+            // std::cout << nd2 << std::endl;
+            // std::cout << nd2->data << std::endl;
+            // std::cout << dataTypeToString(nd2->data_type) << std::endl;
+
+            // std::cout << "++created prop:" << std::endl;
+            // std::cout << pp->own_data << std::endl;
+            // std::cout << pp->own_data->data << std::endl;
+            // std::cout << dataTypeToString(pp->own_data->data_type) << std::endl;
+            portAdd(n->addModInputPort(DATA_TYPE::INT)->setPortProperty(n->addProperty("left bound", n->addNodeData(new int(0), DATA_TYPE::INT))));
+            portAdd(n->addModInputPort(DATA_TYPE::INT)->setPortProperty(n->addProperty("right bound", n->addNodeData(new int(100), DATA_TYPE::INT))));
+        }
         nodeAdd(n);
 
         ret = n;
+
+        // std::cout << "=========BEFORE 1:" << n->props.size() << std::endl;
+
+        // std::cout << "created prop:" << std::endl;
+        // std::cout << ndd << std::endl;
+
+        // std::cout << dataTypeToString(ndd->data_type) << std::endl;
+        // std::cout << "=========BEFORE 2:" << n->props.size() << std::endl;
+
+        // std::cout << "created prop:" << std::endl;
+        // std::cout << pp->own_data << std::endl;
+        // std::cout << pp->own_data->data << std::endl;
+        // std::cout << dataTypeToString(pp->own_data->data_type) << std::endl;
+        // std::cout << "=========BEFORE MORE:" << n->props.size() << std::endl;
+
+        // for (auto &p : n->props)
+        // {
+        //     Property * ppp = p.get();
+        //     std::cout << ppp->name << std::endl;
+        //     if (ppp->own_data != nullptr)
+        //     {
+        //         std::cout << "" << ppp->own_data << std::endl;
+        //         std::cout << " " << ppp->own_data->data << std::endl;
+        //         std::cout << " " << dataTypeToString(ppp->own_data->data_type) << std::endl;
+        //     }
+        // }
     }
     break;
 

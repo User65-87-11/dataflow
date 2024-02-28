@@ -18,22 +18,22 @@ int main(void)
 
     c->evaluate();
 
-    a = gm.createNode(NODE_TYPE::NODE_OF_SUM);
+    // a = gm.createNode(NODE_TYPE::NODE_OF_SUM);
 
-    gm.connectPorts(c->getPortOutByPos(0), a->getInputPortByPos(0));
-    gm.connectPorts(b->getPortOutByPos(0), a->getInputPortByPos(1));
+    // gm.connectPorts(c->getPortOutByPos(0), a->getInputPortByPos(0));
+    // gm.connectPorts(b->getPortOutByPos(0), a->getInputPortByPos(1));
 
-    a->evaluate();
-    //--------- STRINGS-------------
+    // a->evaluate();
+    // //--------- STRINGS-------------
 
-    a = gm.createNode(NODE_TYPE::NODE_OF_STRING_OUT);
-    b = gm.createNode(NODE_TYPE::NODE_OF_STRING_OUT);
-    c = gm.createNode(NODE_TYPE::NODE_OF_STRING_CONCAT);
+    // a = gm.createNode(NODE_TYPE::NODE_OF_STRING_OUT);
+    // b = gm.createNode(NODE_TYPE::NODE_OF_STRING_OUT);
+    // c = gm.createNode(NODE_TYPE::NODE_OF_STRING_CONCAT);
 
-    gm.connectPorts(a->getPortOutByPos(0), c->getInputPortByPos(0));
-    gm.connectPorts(b->getPortOutByPos(0), c->getInputPortByPos(1));
+    // gm.connectPorts(a->getPortOutByPos(0), c->getInputPortByPos(0));
+    // gm.connectPorts(b->getPortOutByPos(0), c->getInputPortByPos(1));
 
-    c->evaluate();
+    // c->evaluate();
 
     return 0;
 }
