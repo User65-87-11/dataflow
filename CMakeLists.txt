@@ -24,4 +24,4 @@ target_include_directories(main01 PRIVATE ${INCLUDES})
 
 set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE CXX)
 
-file(COPY ${CMAKE_SOURCE_DIR}/data DESTINATION ${CMAKE_BINARY_DIR})
+
