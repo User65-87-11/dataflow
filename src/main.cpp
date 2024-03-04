@@ -4,36 +4,29 @@
 
 int main(void)
 {
+    try
+    {
+        // Code that may throw an exception
 
-    std::cout << "---hello dataflow------" << std::endl;
+        std::cout << "---hello dataflow------" << std::endl;
 
-    GraphManager gm;
+        GraphManager gm;
 
-    Node *a = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
-    Node *b = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
-    Node *c = gm.createNode(NODE_TYPE::NODE_OF_SUM);
+        Node *a = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
+        Node *b = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
+        Node *c = gm.createNode(NODE_TYPE::NODE_OF_SUM);
 
-    gm.connect(a, gm.findPortByNameAndNode("out", a), c, gm.findPortByNameAndNode("in_a", c));
-    gm.connect(b, gm.findPortByNameAndNode("out", b), c, gm.findPortByNameAndNode("in_b", c));
+        a->port("out")->connect(c->port("in_a"));
+        b->port("out")->connect(c->port("in_b"));
 
-    c->evaluate();
+        c->evaluate();
 
-    // a = gm.createNode(NODE_TYPE::NODE_OF_SUM);
-
-    // gm.connectPorts(c->getPortOutByPos(0), a->getInputPortByPos(0));
-    // gm.connectPorts(b->getPortOutByPos(0), a->getInputPortByPos(1));
-
-    // a->evaluate();
-    // //--------- STRINGS-------------
-
-    // a = gm.createNode(NODE_TYPE::NODE_OF_STRING_OUT);
-    // b = gm.createNode(NODE_TYPE::NODE_OF_STRING_OUT);
-    // c = gm.createNode(NODE_TYPE::NODE_OF_STRING_CONCAT);
-
-    // gm.connectPorts(a->getPortOutByPos(0), c->getInputPortByPos(0));
-    // gm.connectPorts(b->getPortOutByPos(0), c->getInputPortByPos(1));
-
-    // c->evaluate();
-
+        double *result = static_cast<double *>(c->port("out")->property()->data);
+    }
+    catch (const std::exception &e)
+    {
+        // Handle the exception
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
     return 0;
 }

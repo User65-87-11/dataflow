@@ -99,6 +99,27 @@ void Port::setPortPropId(int prop_id)
     this->prop_id = prop_id;
     this->prop_id = 0;
 }
+Node *Port::node()
+{
+    return this->gmr->findNodeByPortId(id);
+}
+Connection *Port::connect(Port *dst_port)
+{
+    Node *src_node = this->gmr->findNodeByPortId(id);
+    Port *src_port = this;
+    Node *dst_node = dst_port->node();
+
+    return this->gmr->connect(src_node, src_port, dst_node, dst_port);
+}
+Property *Port::property()
+{
+    return this->gmr->getPropById(prop_id);
+}
+void Port::disconnect()
+{
+    Connection *c = this->gmr->findConnByPortId(id);
+    this->gmr->disconnect(c);
+}
 void Port::print()
 {
     std::cout << "Port id: " << id << std::endl;
@@ -122,7 +143,10 @@ Node::Node()
 {
     id = genId();
     this->type = NODE_TYPE::NODE_OF_UNSET;
-    //  port_out = nullptr;
+}
+Port *Node::port(const std::string &name)
+{
+    return this->mgr->findPortByNameAndNode(name, this);
 }
 void Node::setMainProperty(Property *prop)
 {
@@ -150,7 +174,6 @@ void Node::print()
 }
 Node::~Node(){};
 void Node::evaluate() {}
-bool Node::is_complete() { return completeness == 0; }
 
 void Node::setOriginalProperty(int idx, Property *prop)
 {
@@ -160,14 +183,11 @@ void Node::setOriginalProperty(int idx, Property *prop)
 void Node::setRemoteProperty(int idx, Property *prop)
 {
     this->actual_props[idx] = prop;
-
-    completeness &= ~(1 << idx);
 }
 void Node::restorOriginalProperty(int idx)
 {
 
     this->actual_props[idx] = this->original_prop[idx];
-    completeness |= (1 << idx);
 }
 
 //-----------NODE_OF_DOUBLE_OUT-------
@@ -176,7 +196,6 @@ NodeOfDoubleOut::NodeOfDoubleOut()
     this->type = NODE_TYPE::NODE_OF_DOUBLE_OUT;
     this->actual_props.assign(1, nullptr);
     this->original_prop.assign(1, nullptr);
-    completeness = 1;
 }
 
 NodeOfDoubleOut::~NodeOfDoubleOut() {}
@@ -190,7 +209,6 @@ NodeOfStringOut::NodeOfStringOut()
     this->type = NODE_TYPE::NODE_OF_STRING_OUT;
     this->actual_props.assign(1, nullptr);
     this->original_prop.assign(1, nullptr);
-    completeness = 1;
 }
 NodeOfStringOut::~NodeOfStringOut() {}
 void NodeOfStringOut::evaluate() {}
@@ -201,7 +219,6 @@ NodeOfSum::NodeOfSum()
     this->type = NODE_TYPE::NODE_OF_SUM;
     this->actual_props.assign(3, nullptr);
     this->original_prop.assign(3, nullptr);
-    completeness = 7;
 }
 
 NodeOfSum::~NodeOfSum() {}
@@ -239,7 +256,6 @@ NodeOfStringConcat::NodeOfStringConcat()
     this->type = NODE_TYPE::NODE_OF_STRING_CONCAT;
     this->actual_props.assign(3, nullptr);
     this->original_prop.assign(3, nullptr);
-    completeness = 7; // 3 bits set to complete
 }
 NodeOfStringConcat::~NodeOfStringConcat() {}
 void NodeOfStringConcat::evaluate()
@@ -361,6 +377,18 @@ void GraphManager::printPortNodeIds()
         std::cout << "port_id: " << it->first << ", node_id: " << it->second << std::endl;
     }
 }
+Node *GraphManager::findNodeByPortId(int id)
+{
+    int node_id = 0;
+    for (auto it = port_id_node_id.begin(); it != port_id_node_id.end(); ++it)
+    {
+        if (it->first == id)
+        {
+            node_id = it->second;
+        }
+    }
+    return findNodeByNodeId(node_id);
+}
 Port *GraphManager::findPortByNameAndNode(const std::string &name, Node *node)
 {
 
@@ -369,23 +397,23 @@ Port *GraphManager::findPortByNameAndNode(const std::string &name, Node *node)
     //     std::unordered_map< int,std::string> port_id_port_name;
     // std::unordered_map<int,int> port_id_conn_id;
     // std::unordered_map<int,int> port_id_node_id;
-  //  std::cout << "Find node id: " << node->id << ", name: " << name << std::endl;
+    //  std::cout << "Find node id: " << node->id << ", name: " << name << std::endl;
     for (auto it = port_id_node_id.begin(); it != port_id_node_id.end(); ++it)
     {
         if (it->second == node->id)
         {
-           //  std::cout << "add: " <<it->first   << std::endl;
+            //  std::cout << "add: " <<it->first   << std::endl;
             found.push_back(it->first);
         }
     }
-    //5
+    // 5
     if (found.size() > 0)
     {
         for (auto it = found.begin(); it != found.end(); ++it)
         {
             if (port_id_port_name[*it] == name)
             {
-               // std::cout << "found " << name << ", id: " << ports[*it]->id << ", node_id: " << node->id << std::endl;
+                // std::cout << "found " << name << ", id: " << ports[*it]->id << ", node_id: " << node->id << std::endl;
                 return ports[*it];
             }
         }
@@ -397,7 +425,8 @@ Port *GraphManager::createPort(const std::string &name, PORT_TYPE port_type, DAT
     Port *p = new Port(port_type, data_type);
     ports[p->id] = p;
     setPortName(name, p->id);
-   // std::cout << "createPort: " << name << ", id: " << p->id << std::endl;
+    p->gmr = this;
+    // std::cout << "createPort: " << name << ", id: " << p->id << std::endl;
     return p;
 }
 void GraphManager::attachNodePort(Node *node, Port *port)
@@ -425,7 +454,7 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     case NODE_TYPE::NODE_OF_STRING_OUT:
     {
         NodeOfStringOut *n = new NodeOfStringOut();
-       // std::cout << "Create node: " << n->id << std::endl;
+        // std::cout << "Create node: " << n->id << std::endl;
         nodes[n->id] = n;
 
         Port *out = createPort("out", PORT_TYPE::OUTPUT, DATA_TYPE::STRING);
@@ -442,7 +471,7 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     case NODE_TYPE::NODE_OF_DOUBLE_OUT:
     {
         NodeOfDoubleOut *n = new NodeOfDoubleOut();
-       // std::cout << "Create node: " << n->id << std::endl;
+        // std::cout << "Create node: " << n->id << std::endl;
         nodes[n->id] = n;
 
         Port *out = createPort("out", PORT_TYPE::OUTPUT, DATA_TYPE::DOUBLE);
@@ -458,7 +487,7 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     case NODE_TYPE::NODE_OF_STRING_CONCAT:
     {
         NodeOfStringConcat *n = new NodeOfStringConcat();
-      //  std::cout << "Create node: " << n->id << std::endl;
+        //  std::cout << "Create node: " << n->id << std::endl;
         nodes[n->id] = n;
 
         Port *out = createPort("out", PORT_TYPE::OUTPUT, DATA_TYPE::STRING);
@@ -491,7 +520,7 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
     case NODE_TYPE::NODE_OF_SUM:
     {
         NodeOfSum *n = new NodeOfSum();
-     //   std::cout << "Create node: " << n->id << std::endl;
+        //   std::cout << "Create node: " << n->id << std::endl;
         nodes[n->id] = n;
 
         Port *out = createPort("out", PORT_TYPE::OUTPUT, DATA_TYPE::DOUBLE);
@@ -525,6 +554,10 @@ Node *GraphManager::createNode(NODE_TYPE node_type)
 
         std::cout << "createNode " << nodeTypeToString(node_type) << std::endl;
         break;
+    }
+    if (ret != nullptr)
+    {
+        ret->mgr = this;
     }
 
     return ret;
