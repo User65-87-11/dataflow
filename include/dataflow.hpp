@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <set>
 #include <memory>
+#include <list>
 
 #pragma once
 
@@ -56,7 +57,7 @@ public:
     PORT_TYPE port_type;
     DATA_TYPE data_type;
     int prop_id;
-    int dst_port_id;//is_connected?
+   
 
     Port();
     Port(PORT_TYPE port_type, DATA_TYPE t);
@@ -152,7 +153,10 @@ public:
     std::unordered_map<int, Port *> ports;    
     std::unordered_map<int, Property *> properties;    
     std::unordered_map<int, Connection *> connections;  
-    std::unordered_map<std::string, int> port_name_to_id;
+    std::unordered_map< int,std::string> port_id_port_name;
+    std::unordered_map<int,int> port_id_conn_id;
+    std::unordered_map<int,int> port_id_node_id;
+    
     //node_id + port_name concat
 
 
@@ -160,7 +164,14 @@ public:
     Port * createPort(const std::string &name, PORT_TYPE port_type, DATA_TYPE data_type);
     Property *createProperty(void * data, DATA_TYPE);
     void attachPortProp(Port *,Property *prop);
-
+    void attachNodePort(Node * node,Port *port);
+    Connection* findConnByPortId(int id);
+    Node* findNodeByNodeId(int id);
+    Port* findPortByPortId(int id);
+    Property * getPropById(int id);
+    void setPortName(const std::string &name, int id);
+    void printPortNodeIds();
+    Port* findPortByNameAndNode(const std::string &name,Node * node);
     Connection* connect(Node * src_node, Port * src_port, Node * dst_node, Port* dst_port );
     /*
         when both required ports are connected add_new_actual_value
