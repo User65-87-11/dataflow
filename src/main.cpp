@@ -8,6 +8,8 @@ int main(void)
     {
         // Code that may throw an exception
 
+
+        using namespace bo;
         std::cout << "---hello dataflow------" << std::endl;
 
         GraphManager gm;
