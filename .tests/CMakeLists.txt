@@ -7,6 +7,7 @@ project(
 
 set(SOURCES 
 main.cpp
+namespace_impl_a.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/../src/dataflow.cpp
 )  
 
