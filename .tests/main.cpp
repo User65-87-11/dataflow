@@ -1,32 +1,6 @@
 #include <iostream>
 #include <memory>
 #include "dataflow.hpp"
-#include "namespace.h"
- 
-void test4(){
-    std::cout << "TEST 04" << std::endl;
-
-    ns::print();
-
-}
-void test3()
-{
-       std::cout << "TEST 03" << std::endl;
-    class Test
-    {
-        char array[5];
-        Test(){
-            
-        }
-        void print()
-        {
-            for (char &c : array)
-            {
-                std::cout << "symbol:" << c << std::endl;
-            }
-        }
-    };
-}
 
 void test2()
 {
@@ -35,29 +9,30 @@ void test2()
         using namespace bo;
         std::cout << "TEST 02" << std::endl;
 
-        GraphManager gm;
+        Node *a = createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
+        Node *b = createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
+        Node *c = createNode(NODE_TYPE::NODE_OF_SUM);
 
-        Node *a = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
-        Node *b = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
-        Node *c = gm.createNode(NODE_TYPE::NODE_OF_SUM);
+        connect(findPortByNameAndNode("out", a), findPortByNameAndNode("in_a", c));
+        connect(findPortByNameAndNode("out", b), findPortByNameAndNode("in_b", c));
 
-        a->port("out")->connect(c->port("in_a"));
+        c->evaluate(c);
+        // c->evaluate(c);
 
-        b->port("out")->connect(c->port("in_b"));
+        Node *d = createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
+        Node *e = createNode(NODE_TYPE::NODE_OF_SUM);
 
-        c->evaluate();
+        // c->port("out")->connect(e->port("in_a"));
+        // d->port("out")->connect(e->port("in_b"));
 
-        Node *d = gm.createNode(NODE_TYPE::NODE_OF_DOUBLE_OUT);
-        Node *e = gm.createNode(NODE_TYPE::NODE_OF_SUM);
+        connect(findPortByNameAndNode("out", c), findPortByNameAndNode("in_a", e));
+        connect(findPortByNameAndNode("out", d), findPortByNameAndNode("in_b", e));
 
-        c->port("out")->connect(e->port("in_a"));
-        d->port("out")->connect(e->port("in_b"));
-
-        e->evaluate();
+        e->evaluate(e);
 
         // double *result = static_cast<double *>(e->port("out")->property()->data);
         // double *result = double *<double *>data2(e->port("out")->property()->data);
-        double *result = DataHandler<double *>::data(e->port("out")->property()->data);
+        double *result = static_cast<double *>(e->portData("out"));
 
         std::cout << " res:" << *result << std::endl;
         if (*result == 50)
@@ -80,7 +55,6 @@ void test2()
 int main(void)
 {
     test2();
-    test3();
-    test4();
+
     return 0;
 }

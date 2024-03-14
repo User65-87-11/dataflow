@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <map>
 #include <string>
@@ -7,17 +9,23 @@
 #include <list>
 #include <stdexcept>
 
-#pragma once
 namespace bo
 {
 
     enum class DATA_TYPE
     {
-        FLOAT,
-        DOUBLE,
-        INT,
-        STRING,
-        UNSET
+        DATA_FLOAT,
+        DATA_DOUBLE,
+        DATA_INT,
+        DATA_STRING,
+        DATA_UNSET
+    };
+    enum class PORT_TYPE
+    {
+        PORT_INPUT,
+        PORT_OUTPUT,
+        PORT_UNSET,
+        PORT_INPUT_OPT
     };
     enum class NODE_TYPE
     {
@@ -29,182 +37,90 @@ namespace bo
 
     };
 
-    enum class PORT_TYPE
-    {
-        INPUT,
-        OUTPUT,
-        UNSET,
-        INPUT_OPT
-    };
-
-    class Connection
-    {
-
-    public:
-        int id = 0;
-        int src_port_id = 0;
-        int dst_port_id = 0;
-        int src_node_id = 0;
-        int dst_node_id = 0;
-
-        Connection();
-        void print();
-    };
     class Node;
     class Property;
-    class GraphManager;
+    // struct TreeManager;
+    class Port;
+    class Connection
+    {
+    public:
+        Port *src_port = nullptr;
+        Port *dst_port = nullptr;
+        Node *src_node = nullptr;
+        Node *dst_node = nullptr;
+    };
+
     class Port
     {
     public:
-        int id = 0;
-        PORT_TYPE port_type = PORT_TYPE::UNSET;
-        DATA_TYPE data_type = DATA_TYPE::UNSET;
-        int prop_id = 0;
-        GraphManager *gmr = nullptr;
+        PORT_TYPE port_type = PORT_TYPE::PORT_UNSET;
+        DATA_TYPE data_type = DATA_TYPE::DATA_UNSET;
+        Node *node = nullptr;
+        std::string name;
+        int prop_idx = -1;
 
-        Port();
-        Port(PORT_TYPE port_type, DATA_TYPE t);
-        ~Port();
-        void setPortPropId(int id);
-        Node *node();
-        Connection *connect(Port *dst);
-        void disconnect();
-        Property *property();
-
-        void print();
+        void attachPortProp(int idx);
+        void setPortName(const std::string &name);
+        
     };
 
     class Property
     {
     public:
-        int id = 0;
-        DATA_TYPE type = DATA_TYPE::UNSET;
+        DATA_TYPE type = DATA_TYPE::DATA_UNSET;
         void *data = nullptr;
-
-        Property(void *data, DATA_TYPE type);
-        virtual ~Property();
     };
     class Node
     {
-
     public:
-        int id = 0;
         NODE_TYPE type = NODE_TYPE::NODE_OF_UNSET;
-        Property *main = nullptr;
+
+        //  Property *main = nullptr;
         std::set<Node *> dest_nodes;
+        // std::vector<Node *> child_nodes;
         std::vector<Property *> original_prop;
         std::vector<Property *> actual_props;
 
-        //-------------
-        GraphManager *mgr = nullptr;
+        std::vector<Port *> ports;
 
-        Node();
-        virtual ~Node();
-        void print();
-        virtual void evaluate();
+        void (*evaluate)(Node *) = nullptr;
 
-        void setMainProperty(Property *prop);
-        void setOriginalProperty(int idx, Property *prop);
-        void setRemoteProperty(int idx, Property *prop);
-        void restorOriginalProperty(int idx);
-        int propertyIndex(Property *prop);
-        bool isOriginalProp(Property *prop);
-
-        Port *port(const std::string &name);
-    };
-    class NodeOfDoubleOut : public Node
-    {
-    public:
-        NodeOfDoubleOut();
-        ~NodeOfDoubleOut();
-        void evaluate() override;
-    };
-
-    class NodeOfStringOut : public Node
-    {
-    public:
-        NodeOfStringOut();
-        ~NodeOfStringOut();
-        void evaluate() override;
-    };
-
-    class NodeOfSum : public Node
-    {
-
-    public:
-        NodeOfSum();
-        ~NodeOfSum();
-
-        void evaluate() override;
-    };
-
-    class NodeOfStringConcat : public Node
-    {
-
-    public:
-        NodeOfStringConcat();
-        ~NodeOfStringConcat();
-
-        void evaluate() override;
+        void SetOriginalProperty(int idx, Property *prop);
+        void SetRemoteProperty(int idx, Property *prop);
+        void RestorOriginalProperty(int idx);
+        int PropertyIndex(Property *prop);
+        bool IsOriginalProp(int idx, Property *prop);
+        bool IsDestinationOf(Node *b);
+        void SetEvaluateFn(void (*evaluate)(Node *));
+        void attachNodePort(Port *port);
+        void *portData(const std::string &name);
     };
 
     //-------GRAPH MANAGER
-    class GraphManager
+    struct TreeManager
     {
-    public:
-        GraphManager();
-        ~GraphManager();
-        std::unordered_map<int, Node *> nodes;
-        std::unordered_map<int, Port *> ports;
-        std::unordered_map<int, Property *> properties;
-        std::unordered_map<int, Connection *> connections;
-        std::unordered_map<int, std::string> port_id_port_name;
-        std::unordered_map<int, int> port_id_conn_id;
-        std::unordered_map<int, int> port_id_node_id;
 
-        // node_id + port_name concat
-
-        Node *createNode(NODE_TYPE type);
-        Port *createPort(const std::string &name, PORT_TYPE port_type, DATA_TYPE data_type);
-        Property *createProperty(void *data, DATA_TYPE);
-        void attachPortProp(Port *, Property *prop);
-        void attachNodePort(Node *node, Port *port);
-        Connection *findConnByPortId(int id);
-        Node *findNodeByNodeId(int id);
-        Node *findNodeByPortId(int id);
-
-        Port *findPortByPortId(int id);
-        Property *getPropById(int id);
-        void setPortName(const std::string &name, int id);
-        void printPortNodeIds();
-        Port *findPortByNameAndNode(const std::string &name, Node *node);
-        Connection *connect(Node *src_node, Port *src_port, Node *dst_node, Port *dst_port);
-
-        void disconnect(Node *src_node, Port *src_port, Node *dst_node, Port *dst_port);
-        void disconnect(Connection *conn);
+        std::list<Node *> nodes;
+        std::list<Port *> ports;
+        std::list<Property *> properties;
+        std::list<Connection *> connections;
+        std::unordered_map<Port *, Connection *> port_conn;
+        //    std::unordered_map<Port *, std::string> port_name;
+        //  std::unordered_map<Port *, Node *> port_node;
+        // std::unordered_map<Node *, void (*)(Node *)> node_eval;
+        //  std::unordered_map<Port *, int> port_prop_idx;
     };
 
-    template <typename T>
-    class DataHandler
-    {
-    public:
-        static T data(void *data)
-        {
-            if (data == nullptr)
-            {
-                throw std::runtime_error("null data");
-            }
-            else
-            {
-                return static_cast<T>(data);
-            }
-        }
-    };
+    Node *createNode(NODE_TYPE type);
+    Port *createPort(const std::string &name, PORT_TYPE port_type, DATA_TYPE data_type);
+    Property *createProperty(void *data, DATA_TYPE);
+    Port *findPortByNameAndNode(const std::string &name, Node *);
+    Connection *connect(Node *src_node, Port *src_port, Node *dst_node, Port *dst_port);
+    Connection *connect(Port *src_port, Port *dst_port);
 
-    inline int genId()
-    {
-        static int cnt = 0;
-        cnt++;
-        return cnt;
-    };
+    void disconnect(Node *src_node, Port *src_port, Node *dst_node, Port *dst_port);
+    void disconnect(Connection *conn);
+
+    void clear();
+    //-------   
 }
