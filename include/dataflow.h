@@ -56,11 +56,11 @@ namespace bo
         PORT_TYPE port_type = PORT_TYPE::PORT_UNSET;
         DATA_TYPE data_type = DATA_TYPE::DATA_UNSET;
         Node *node = nullptr;
-        std::string name;
+        const char * name;
         int prop_idx = -1;
 
         void attachPortProp(int idx);
-        void setPortName(const std::string &name);
+        void setPortName(const char *name);
         
     };
 
@@ -73,11 +73,10 @@ namespace bo
     class Node
     {
     public:
+
         NODE_TYPE type = NODE_TYPE::NODE_OF_UNSET;
 
-        //  Property *main = nullptr;
         std::set<Node *> dest_nodes;
-        // std::vector<Node *> child_nodes;
         std::vector<Property *> original_prop;
         std::vector<Property *> actual_props;
 
@@ -93,7 +92,7 @@ namespace bo
         bool IsDestinationOf(Node *b);
         void SetEvaluateFn(void (*evaluate)(Node *));
         void attachNodePort(Port *port);
-        void *portData(const std::string &name);
+        void *portData(const  char * name);
     };
 
     //-------GRAPH MANAGER
@@ -105,16 +104,13 @@ namespace bo
         std::list<Property *> properties;
         std::list<Connection *> connections;
         std::unordered_map<Port *, Connection *> port_conn;
-        //    std::unordered_map<Port *, std::string> port_name;
-        //  std::unordered_map<Port *, Node *> port_node;
-        // std::unordered_map<Node *, void (*)(Node *)> node_eval;
-        //  std::unordered_map<Port *, int> port_prop_idx;
+  
     };
 
     Node *createNode(NODE_TYPE type);
-    Port *createPort(const std::string &name, PORT_TYPE port_type, DATA_TYPE data_type);
+    Port *createPort(const char * name, PORT_TYPE port_type, DATA_TYPE data_type);
     Property *createProperty(void *data, DATA_TYPE);
-    Port *findPortByNameAndNode(const std::string &name, Node *);
+    Port *findPortByNameAndNode(const char * name, Node *);
     Connection *connect(Node *src_node, Port *src_port, Node *dst_node, Port *dst_port);
     Connection *connect(Port *src_port, Port *dst_port);
 
@@ -122,5 +118,7 @@ namespace bo
     void disconnect(Connection *conn);
 
     void clear();
+
+    
     //-------   
 }

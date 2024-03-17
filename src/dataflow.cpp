@@ -1,5 +1,4 @@
-#include "dataflow.hpp"
-#include <functional>
+#include "dataflow.h"
 #include <iostream>
 
 /*
@@ -11,6 +10,8 @@
 
 namespace bo
 {
+
+    
 
     struct TreeManager TreeManager
     {
@@ -225,7 +226,7 @@ namespace bo
         // TreeManager.node_eval[n] = ev;
         this->evaluate = ev;
     }
-    Port *createPort(const std::string &name, PORT_TYPE port_type, DATA_TYPE data_type)
+    Port *createPort(const char * name, PORT_TYPE port_type, DATA_TYPE data_type)
     {
         Port *port = new Port();
         port->data_type = data_type;
@@ -257,18 +258,18 @@ namespace bo
         // TreeManager.port_node[port] = node;
     }
 
-    void Port::setPortName(const std::string &name)
+    void Port::setPortName(const char * name)
     {
         this->name = name;
         // TreeManager.port_name[port] = name;
     }
-    void *Node::portData(const std::string &name)
+    void *Node::portData(const  char *  name)
     {
         Port *p = findPortByNameAndNode(name, this);
         Property *pr = this->actual_props[p->prop_idx];
         return pr->data;
     }
-    Port *findPortByNameAndNode(const std::string &name, Node *node)
+    Port *findPortByNameAndNode(const  char *  name, Node *node)
     {
 
         for (auto it = node->ports.begin(); it != node->ports.end(); ++it)
